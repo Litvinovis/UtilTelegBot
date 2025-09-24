@@ -1,0 +1,48 @@
+# Конфигурация Telegram бота
+telegram:
+  bot:
+    username: ${TELEGRAM_BOT_USERNAME:YourBotUsername}
+    token: ${TELEGRAM_BOT_TOKEN:YourBotToken}
+
+# Конфигурация кампаний и государственных органов
+campaigns:
+  - id: campaign1
+    name: "Кампания по декларации налогов"
+    description: "Помощь в процессе подачи налоговой декларации"
+    agencies:
+      - id: agency1
+        name: "Федеральная налоговая служба"
+        description: "Федеральная налоговая служба России"
+        template-file: "templates/fns/template.txt"
+        instruction-file: "templates/fns/instruction.txt"
+        delivery-options:
+          - "file"
+          - "text"
+      - id: agency2
+        name: "Местная налоговая инспекция"
+        description: "Местная налоговая инспекция"
+        template-file: "templates/local-tax/template.txt"
+        instruction-file: "templates/local-tax/instruction.txt"
+        delivery-options:
+          - "file"
+          - "text"
+  - id: campaign2
+    name: "Кампания по социальным льготам"
+    description: "Помощь в подаче заявления на социальные льготы"
+    agencies:
+      - id: agency3
+        name: "Департамент социальной защиты"
+        description: "Департамент социальной защиты населения"
+        template-file: "templates/social/template.txt"
+        instruction-file: "templates/social/instruction.txt"
+        delivery-options:
+          - "file"
+          - "text"
+
+# Конфигурация статистики
+statistics:
+  file-path: "data/statistics.json"
+
+# Конфигурация логирования
+logging:
+  config: classpath:logback.xml
