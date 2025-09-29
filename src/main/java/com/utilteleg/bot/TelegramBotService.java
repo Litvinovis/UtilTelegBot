@@ -1,4 +1,4 @@
-package main.java.com.utilteleg.bot;
+package com.utilteleg.bot;
 
 import com.utilteleg.bot.model.Agency;
 import com.utilteleg.bot.model.Campaign;
@@ -78,8 +78,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
     
     private void sendWelcomeMessage(Long chatId) {
-        String welcomeText = "Добро пожаловать в бот шаблонов государственных заявлений!\n" +
-                "Используйте /campaigns для просмотра доступных кампаний.";
+        String welcomeText = "Добро пожаловать в бот шаблонов заявлений в госорганы!\n" +
+                "Используйте /campaigns для просмотра доступных тем.";
         
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
@@ -103,7 +103,6 @@ public class TelegramBotService extends TelegramLongPollingBot {
             SendMessage errorMessage = new SendMessage();
             errorMessage.setChatId(chatId.toString());
             errorMessage.setText("Извините, произошла критическая ошибка при загрузке конфигурации. AppConfig недоступен.\n\n" +
-                               "Диагностика:\n" +
                                "- AppConfig бин равен null\n" +
                                "- Конфигурация не была внедрена правильно\n" +
                                "- Проверьте аннотации класса AppConfig и Application");
@@ -285,12 +284,20 @@ public class TelegramBotService extends TelegramLongPollingBot {
                     com.utilteleg.bot.model.Agency selectedAgency = agencies.get(agencyIndex);
                     userSelectedAgency.put(chatId, selectedAgency.getId());
                     
-                    StringBuilder messageTextBuilder = new StringBuilder("Доступные варианты доставки для ")
+                    StringBuilder messageTextBuilder = new StringBuilder("Доступные варианты отправки шаблона для ")
                             .append(selectedAgency.getName()).append(":\n\n");
                     
                     List<String> deliveryOptions = selectedAgency.getDeliveryOptions();
                     for (int i = 0; i < deliveryOptions.size(); i++) {
-                        messageTextBuilder.append((i + 1)).append(". ").append(deliveryOptions.get(i)).append("\n");
+                        String option = deliveryOptions.get(i);
+                        String displayOption = option;
+                        // Преобразуем английские варианты в русские
+                        if ("file".equals(option)) {
+                            displayOption = "файл";
+                        } else if ("text".equals(option)) {
+                            displayOption = "текстовое сообщение";
+                        }
+                        messageTextBuilder.append((i + 1)).append(". ").append(displayOption).append("\n");
                     }
                     
                     messageTextBuilder.append("\nПожалуйста, выберите вариант доставки, введя его номер.");
@@ -355,6 +362,13 @@ public class TelegramBotService extends TelegramLongPollingBot {
                     if (optionIndex >= 0 && optionIndex < deliveryOptions.size()) {
                         String selectedOption = deliveryOptions.get(optionIndex);
                         
+                        // Преобразуем русские варианты обратно в английские для внутренней обработки
+                        if ("файл".equals(selectedOption)) {
+                            selectedOption = "file";
+                        } else if ("текстовое сообщение".equals(selectedOption)) {
+                            selectedOption = "text";
+                        }
+                        
                         // Увеличить статистику
                         statisticsService.incrementTemplateDownload(selectedAgency.getTemplateFile());
                         
@@ -390,16 +404,16 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
     
     private void sendTemplate(Long chatId, com.utilteleg.bot.model.Agency agency, String deliveryOption) {
-        if ("file".equals(deliveryOption)) {
+        if ("file".equals(deliveryOption) || "файл".equals(deliveryOption)) {
             // Отправить как файл
             File templateFile = new File(agency.getTemplateFile());
             if (templateFile.exists()) {
-                SendDocument sendDocument = new SendDocument();
-                sendDocument.setChatId(chatId.toString());
-                sendDocument.setDocument(new org.telegram.telegrambots.meta.api.objects.InputFile(templateFile));
-                sendDocument.setCaption("Вот ваш шаблон заявления");
-                
                 try {
+                    SendDocument sendDocument = new SendDocument();
+                    sendDocument.setChatId(chatId.toString());
+                    sendDocument.setDocument(new org.telegram.telegrambots.meta.api.objects.InputFile(templateFile));
+                    sendDocument.setCaption("Вот ваш шаблон заявления");
+                    
                     execute(sendDocument);
                     // После отправки шаблона отправляем инструкцию
                     sendInstructionFile(chatId.toString(), agency);
@@ -422,7 +436,19 @@ public class TelegramBotService extends TelegramLongPollingBot {
         File templateFile = new File(agency.getTemplateFile());
         if (templateFile.exists()) {
             try {
-                String templateContent = java.nio.file.Files.readString(templateFile.toPath());
+                String templateContent;
+                
+                // Проверяем расширение файла для правильной обработки
+                String fileName = templateFile.getName().toLowerCase();
+                if (fileName.endsWith(".docx")) {
+                    // Для DOCX файлов отправляем как файл, так как их нельзя прочитать как текст
+                    logger.info("DOCX файл не может быть отправлен как текст, отправляем как файл: {}", agency.getTemplateFile());
+                    sendTemplate(chatId, agency, "file");
+                    return;
+                } else {
+                    // Для текстовых файлов читаем содержимое
+                    templateContent = java.nio.file.Files.readString(templateFile.toPath());
+                }
                 
                 SendMessage message = new SendMessage();
                 message.setChatId(chatId.toString());

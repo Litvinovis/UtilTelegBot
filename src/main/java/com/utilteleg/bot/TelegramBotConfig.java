@@ -1,4 +1,4 @@
-package main.java.com.utilteleg.bot;
+package com.utilteleg.bot;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

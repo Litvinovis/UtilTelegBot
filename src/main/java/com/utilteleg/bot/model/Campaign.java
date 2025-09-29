@@ -1,4 +1,4 @@
-package main.java.com.utilteleg.bot.model;
+package com.utilteleg.bot.model;
 
 import java.util.List;
 

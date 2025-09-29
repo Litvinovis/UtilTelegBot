@@ -1,4 +1,4 @@
-package main.java.com.utilteleg.bot;
+package com.utilteleg.bot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;

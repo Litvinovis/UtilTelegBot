@@ -1,4 +1,4 @@
-package main.java.com.utilteleg.bot.service;
+package com.utilteleg.bot.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;

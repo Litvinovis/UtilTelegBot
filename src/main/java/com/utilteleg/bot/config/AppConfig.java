@@ -1,4 +1,4 @@
-package main.java.com.utilteleg.bot.config;
+package com.utilteleg.bot.config;
 
 import com.utilteleg.bot.model.Campaign;
 import org.slf4j.Logger;

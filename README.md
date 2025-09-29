@@ -11,30 +11,6 @@ Telegram бот для предоставления шаблонов госуд�
 - Конфигурация на основе YAML
 - Конфигурация логирования Logback
 
-## Структура проекта
-
-```
-src/
-├── main/
-│   ├── java/
-│   │   └── com/utilteleg/bot/
-│   │       ├── model/           # Модели данных (Campaign, Agency)
-│   │       ├── service/         # Бизнес-логика (StatisticsService)
-│   │       ├── config/          # Классы конфигурации
-│   │       ├── Application.java # Основной класс приложения
-│   │       ├── TelegramBotConfig.java # Конфигурация Telegram бота
-│   │       └── TelegramBotService.java # Реализация Telegram бота
-│   └── resources/
-│       ├── templates/           # Файлы шаблонов для каждого органа
-│       │   ├── fns/
-│       │   ├── local-tax/
-│       │   └── social/
-│       ├── data/                # Файлы данных (статистика)
-│       ├── application.yml      # Конфигурация приложения
-│       └── logback.xml          # Конфигурация логирования
-└── test/                        # Модульные тесты (для реализации)
-```
-
 ## Конфигурация
 
 Бот настраивается через `application.yml`:
@@ -55,8 +31,8 @@ campaigns:
         description: "Федеральная налоговая служба России"
         template-file: "templates/fns/template.txt"
         delivery-options:
-          - "file"
-          - "text"
+          - "файл"
+          - "текстовое сообщение"
 
 statistics:
   file-path: "data/statistics.json"
@@ -85,11 +61,6 @@ statistics:
    ```bash
    java -jar target/util-teleg-bot-1.0-SNAPSHOT.jar
    ```
-
-## Команды Telegram бота
-
-- `/start` - Приветственное сообщение
-- `/campaigns` - Список доступных кампаний
 
 ## Детали реализации
 

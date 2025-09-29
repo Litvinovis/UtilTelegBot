@@ -1,4 +1,4 @@
-package test.java.com.utilteleg.bot;
+package com.utilteleg.bot;
 
 import com.utilteleg.bot.config.AppConfig;
 import com.utilteleg.bot.model.Campaign;

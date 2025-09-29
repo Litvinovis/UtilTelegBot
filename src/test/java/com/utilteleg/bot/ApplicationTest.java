@@ -1,4 +1,4 @@
-package test.java.com.utilteleg.bot;
+package com.utilteleg.bot;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
