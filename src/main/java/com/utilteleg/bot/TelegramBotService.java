@@ -15,12 +15,18 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+// Добавляем импорты для Apache POI
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
 public class TelegramBotService extends TelegramLongPollingBot {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBotService.class);
@@ -404,7 +410,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
     
     private void sendTemplate(Long chatId, com.utilteleg.bot.model.Agency agency, String deliveryOption) {
-        if ("file".equals(deliveryOption) || "файл".equals(deliveryOption)) {
+        if ("file".equals(deliveryOption)) {
             // Отправить как файл
             File templateFile = new File(agency.getTemplateFile());
             if (templateFile.exists()) {
@@ -441,12 +447,10 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 // Проверяем расширение файла для правильной обработки
                 String fileName = templateFile.getName().toLowerCase();
                 if (fileName.endsWith(".docx")) {
-                    // Для DOCX файлов отправляем как файл, так как их нельзя прочитать как текст
-                    logger.info("DOCX файл не может быть отправлен как текст, отправляем как файл: {}", agency.getTemplateFile());
-                    sendTemplate(chatId, agency, "file");
-                    return;
+                    // Для DOCX файлов извлекаем текст с помощью Apache POI
+                    templateContent = extractTextFromDocx(templateFile);
                 } else {
-                    // Для текстовых файлов читаем содержимое
+                    // Для текстовых файлов читаем содержимое напрямую
                     templateContent = java.nio.file.Files.readString(templateFile.toPath());
                 }
                 
@@ -461,7 +465,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 } catch (TelegramApiException e) {
                     logger.error("Не удалось отправить шаблон как текст: {}", e.getMessage(), e);
                 }
-            } catch (java.io.IOException e) {
+            } catch (Exception e) {
                 logger.error("Не удалось прочитать файл шаблона: {}", e.getMessage(), e);
                 
                 SendMessage message = new SendMessage();
@@ -471,7 +475,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 try {
                     execute(message);
                 } catch (TelegramApiException ex) {
-                    logger.error("Не удалось отправить сообщение об ошибке: {}", ex.getMessage(), ex);
+                    logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), ex);
                 }
             }
         } else {
@@ -488,7 +492,31 @@ public class TelegramBotService extends TelegramLongPollingBot {
             }
         }
     }
-
+    
+    /**
+     * Извлекает текст из DOCX файла с помощью Apache POI
+     * @param docxFile DOCX файл для извлечения текста
+     * @return Извлеченный текст из DOCX файла
+     * @throws IOException если возникает ошибка при чтении файла
+     */
+    private String extractTextFromDocx(File docxFile) throws IOException {
+        try (FileInputStream fis = new FileInputStream(docxFile);
+             XWPFDocument document = new XWPFDocument(fis)) {
+            
+            StringBuilder text = new StringBuilder();
+            List<XWPFParagraph> paragraphs = document.getParagraphs();
+            
+            for (XWPFParagraph paragraph : paragraphs) {
+                text.append(paragraph.getText()).append("\n");
+            }
+            
+            return text.toString();
+        } catch (Exception e) {
+            logger.error("Ошибка при извлечении текста из DOCX файла: {}", e.getMessage(), e);
+            throw new IOException("Не удалось извлечь текст из DOCX файла", e);
+        }
+    }
+    
     /**
      * Отправляет инструкцию по отправке заявления в виде текстового сообщения
      */

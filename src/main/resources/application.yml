@@ -16,16 +16,16 @@ campaigns:
         template-file: "templates/fns/template.txt"
         instruction-file: "templates/fns/instruction.txt"
         delivery-options:
-          - "файл"
-          - "текстовое сообщение"
+          - "file"
+          - "text"
       - id: agency2
         name: "Местная налоговая инспекция"
         description: "Местная налоговая инспекция"
         template-file: "templates/local-tax/template.txt"
         instruction-file: "templates/local-tax/instruction.txt"
         delivery-options:
-          - "файл"
-          - "текстовое сообщение"
+          - "file"
+          - "text"
   - id: campaign2
     name: "Кампания по социальным льготам"
     description: "Помощь в подаче заявления на социальные льготы"
@@ -36,8 +36,8 @@ campaigns:
         template-file: "templates/social/template.txt"
         instruction-file: "templates/social/instruction.txt"
         delivery-options:
-          - "файл"
-          - "текстовое сообщение"
+          - "file"
+          - "text"
 
 # Конфигурация статистики
 statistics:
