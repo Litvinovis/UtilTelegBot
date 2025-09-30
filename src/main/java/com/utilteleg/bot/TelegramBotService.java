@@ -11,7 +11,6 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
@@ -48,6 +47,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
     public TelegramBotService(
             @Value("${telegram.bot.username}") String botUsername,
             @Value("${telegram.bot.token}") String botToken) {
+        super(botToken);
         this.botUsername = botUsername;
         this.botToken = botToken;
     }
@@ -179,8 +179,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
         
         for (int i = 0; i < campaigns.size(); i++) {
             Campaign campaign = campaigns.get(i);
-            messageText.append((i + 1)).append(". ").append(campaign.getName())
-                    .append(" - ").append(campaign.getDescription()).append("\n");
+            messageText.append((i + 1)).append(". ").append(campaign.getName()).append("\n");
         }
         
         messageText.append("\nПожалуйста, выберите кампанию, введя её номер.");
@@ -233,8 +232,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 List<com.utilteleg.bot.model.Agency> agencies = selectedCampaign.getAgencies();
                 for (int i = 0; i < agencies.size(); i++) {
                     com.utilteleg.bot.model.Agency agency = agencies.get(i);
-                    messageTextBuilder.append((i + 1)).append(". ").append(agency.getName())
-                            .append(" - ").append(agency.getDescription()).append("\n");
+                    messageTextBuilder.append((i + 1)).append(". ").append(agency.getName()).append("\n");
                 }
                 
                 messageTextBuilder.append("\nПожалуйста, выберите орган, введя его номер.");
@@ -290,34 +288,55 @@ public class TelegramBotService extends TelegramLongPollingBot {
                     com.utilteleg.bot.model.Agency selectedAgency = agencies.get(agencyIndex);
                     userSelectedAgency.put(chatId, selectedAgency.getId());
                     
-                    StringBuilder messageTextBuilder = new StringBuilder("Доступные варианты отправки шаблона для ")
-                            .append(selectedAgency.getName()).append(":\n\n");
-                    
-                    List<String> deliveryOptions = selectedAgency.getDeliveryOptions();
-                    for (int i = 0; i < deliveryOptions.size(); i++) {
-                        String option = deliveryOptions.get(i);
-                        String displayOption = option;
-                        // Преобразуем английские варианты в русские
-                        if ("file".equals(option)) {
-                            displayOption = "файл";
-                        } else if ("text".equals(option)) {
-                            displayOption = "текстовое сообщение";
+                    // Если нет шаблона, отправляем только инструкцию без выбора опций
+                    logger.info("Проверка наличия шаблона для агентства {}: hasTemplate={} (templateFile={})", 
+                        selectedAgency.getName(), selectedAgency.hasTemplate(), selectedAgency.getTemplateFile());
+                    if (!selectedAgency.hasTemplate()) {
+                        logger.info("Агентство {} не имеет шаблона, отправляем только инструкцию", selectedAgency.getName());
+                        if (selectedAgency.hasInstruction()) {
+                            sendInstructionOnly(chatId, selectedAgency);
+                        } else {
+                            sendNoContentMessage(chatId, selectedAgency);
                         }
-                        messageTextBuilder.append((i + 1)).append(". ").append(displayOption).append("\n");
-                    }
-                    
-                    messageTextBuilder.append("\nПожалуйста, выберите вариант доставки, введя его номер.");
-                    
-                    SendMessage message = new SendMessage();
-                    message.setChatId(chatId.toString());
-                    message.setText(messageTextBuilder.toString());
-                    
-                    userStates.put(chatId, "SELECTING_DELIVERY");
-                    
-                    try {
-                        execute(message);
-                    } catch (TelegramApiException e) {
-                        logger.error("Не удалось отправить варианты доставки: {}", e.getMessage(), e);
+                    } else {
+                        // Если есть шаблон, показываем варианты доставки
+                        StringBuilder messageTextBuilder = new StringBuilder();
+                        messageTextBuilder.append("Доступные варианты отправки шаблона для ")
+                                .append(selectedAgency.getName()).append(":\n\n");
+                        
+                        List<String> deliveryOptions = selectedAgency.getDeliveryOptions();
+                        int optionIndex = 1; // Используем отдельный индекс для нумерации опций
+                        
+                        // Добавляем опции для шаблона
+                        for (String option : deliveryOptions) {
+                            String displayOption = option;
+                            // Преобразуем английские варианты в русские
+                            if ("file".equals(option)) {
+                                displayOption = "файл";
+                            } else if ("text".equals(option)) {
+                                displayOption = "текстовое сообщение";
+                            }
+                            messageTextBuilder.append(optionIndex++).append(". ").append(displayOption).append("\n");
+                        }
+                        
+                        // Добавляем опцию для получения только инструкции
+                        if (selectedAgency.hasInstruction()) {
+                            messageTextBuilder.append(optionIndex++).append(". Только инструкция\n");
+                        }
+                        
+                        messageTextBuilder.append("\nПожалуйста, выберите вариант доставки, введя его номер.");
+                        
+                        SendMessage message = new SendMessage();
+                        message.setChatId(chatId.toString());
+                        message.setText(messageTextBuilder.toString());
+                        
+                        userStates.put(chatId, "SELECTING_DELIVERY");
+                        
+                        try {
+                            execute(message);
+                        } catch (TelegramApiException e) {
+                            logger.error("Не удалось отправить варианты доставки: {}", e.getMessage(), e);
+                        }
                     }
                 } else {
                     SendMessage message = new SendMessage();
@@ -365,21 +384,42 @@ public class TelegramBotService extends TelegramLongPollingBot {
                     int optionIndex = Integer.parseInt(messageText) - 1;
                     List<String> deliveryOptions = selectedAgency.getDeliveryOptions();
                     
-                    if (optionIndex >= 0 && optionIndex < deliveryOptions.size()) {
-                        String selectedOption = deliveryOptions.get(optionIndex);
-                        
-                        // Преобразуем русские варианты обратно в английские для внутренней обработки
-                        if ("файл".equals(selectedOption)) {
-                            selectedOption = "file";
-                        } else if ("текстовое сообщение".equals(selectedOption)) {
-                            selectedOption = "text";
+                    // Проверяем, есть ли шаблон
+                    boolean hasTemplate = selectedAgency.hasTemplate();
+                    boolean hasInstruction = selectedAgency.hasInstruction();
+                    
+                    int optionCount = deliveryOptions.size();
+                    if (hasInstruction && !hasTemplate) {
+                        optionCount++; // Добавляем опцию "только инструкция" если нет шаблона
+                    } else if (hasInstruction && hasTemplate) {
+                        optionCount++; // Добавляем опцию "только инструкция" даже если есть шаблон
+                    }
+                    
+                    if (optionIndex >= 0 && optionIndex < optionCount) {
+                        // Проверяем, выбрана ли опция "только инструкция"
+                        if (hasInstruction && optionIndex == deliveryOptions.size()) {
+                            // Отправить только инструкцию
+                            sendInstructionOnly(chatId, selectedAgency);
+                        } else if (hasTemplate && optionIndex < deliveryOptions.size()) {
+                            // Отправить шаблон
+                            String selectedOption = deliveryOptions.get(optionIndex);
+                            
+                            // Преобразуем русские варианты обратно в английские для внутренней обработки
+                            if ("файл".equals(selectedOption)) {
+                                selectedOption = "file";
+                            } else if ("текстовое сообщение".equals(selectedOption)) {
+                                selectedOption = "text";
+                            }
+                            
+                            // Увеличить статистику
+                            if (selectedAgency.hasTemplate()) {
+                                statisticsService.incrementTemplateDownload(selectedAgency.getTemplateFile());
+                            }
+                            
+                            sendTemplate(chatId, selectedAgency, selectedOption);
+                        } else {
+                            sendNoContentMessage(chatId, selectedAgency);
                         }
-                        
-                        // Увеличить статистику
-                        statisticsService.incrementTemplateDownload(selectedAgency.getTemplateFile());
-                        
-                        // Отправить шаблон
-                        sendTemplate(chatId, selectedAgency, selectedOption);
                         
                         // Сбросить состояние пользователя
                         userStates.remove(chatId);
@@ -410,6 +450,13 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
     
     private void sendTemplate(Long chatId, com.utilteleg.bot.model.Agency agency, String deliveryOption) {
+        // Проверяем, есть ли шаблон
+        if (!agency.hasTemplate()) {
+            // Если шаблона нет, отправляем только инструкцию
+            sendInstructionOnly(chatId, agency);
+            return;
+        }
+        
         if ("file".equals(deliveryOption)) {
             // Отправить как файл
             File templateFile = new File(agency.getTemplateFile());
@@ -439,6 +486,13 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
     
     private void sendTemplateAsText(Long chatId, com.utilteleg.bot.model.Agency agency) {
+        // Проверяем, есть ли шаблон
+        if (!agency.hasTemplate()) {
+            // Если шаблона нет, отправляем только инструкцию
+            sendInstructionOnly(chatId, agency);
+            return;
+        }
+        
         File templateFile = new File(agency.getTemplateFile());
         if (templateFile.exists()) {
             try {
@@ -580,5 +634,37 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 "4. После отправки сохраните подтверждение\n" +
                 "5. Следите за статусом рассмотрения заявления\n\n" +
                 "Подробности уточняйте на официальном сайте " + agency.getName() + ".";
+    }
+    
+    /**
+     * Отправляет только инструкцию без шаблона
+     */
+    private void sendInstructionOnly(Long chatId, Agency agency) {
+        sendInstructionFile(chatId.toString(), agency);
+        
+        // Сбросить состояние пользователя
+        userStates.remove(chatId);
+        userSelectedCampaign.remove(chatId);
+        userSelectedAgency.remove(chatId);
+    }
+    
+    /**
+     * Отправляет сообщение о том, что нет контента для отправки
+     */
+    private void sendNoContentMessage(Long chatId, Agency agency) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("Извините, для данного органа нет доступных шаблонов или инструкций.");
+        
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            logger.error("Не удалось отправить сообщение об отсутствии контента: {}", e.getMessage(), e);
+        }
+        
+        // Сбросить состояние пользователя
+        userStates.remove(chatId);
+        userSelectedCampaign.remove(chatId);
+        userSelectedAgency.remove(chatId);
     }
 }

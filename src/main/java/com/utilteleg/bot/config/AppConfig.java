@@ -38,21 +38,19 @@ public class AppConfig {
             logger.info("Детали загруженных кампаний:");
             for (int i = 0; i < campaigns.size(); i++) {
                 Campaign campaign = campaigns.get(i);
-                logger.info("  Кампания {}: id='{}', name='{}', описание='{}', количество органов={}", 
+                logger.info("  Кампания {}: id='{}', name='{}', количество органов={}", 
                     i+1, 
                     campaign.getId(), 
-                    campaign.getName(), 
-                    campaign.getDescription(),
+                    campaign.getName(),
                     campaign.getAgencies() != null ? campaign.getAgencies().size() : "null");
                 
                 if (campaign.getAgencies() != null) {
                     for (int j = 0; j < campaign.getAgencies().size(); j++) {
                         com.utilteleg.bot.model.Agency agency = campaign.getAgencies().get(j);
-                        logger.info("    Орган {}: id='{}', name='{}', описание='{}', template-file='{}', варианты доставки={}",
+                        logger.info("    Орган {}: id='{}', name='{}', template-file='{}', варианты доставки={}",
                             j+1,
                             agency.getId(),
                             agency.getName(),
-                            agency.getDescription(),
                             agency.getTemplateFile(),
                             agency.getDeliveryOptions() != null ? agency.getDeliveryOptions().size() : "null");
                     }

@@ -2,13 +2,12 @@ package com.utilteleg.bot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.utilteleg.bot.model.Campaign;
-
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 
 public class TestConfigLoading {
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
         try {
             // Test direct YAML parsing

@@ -6,7 +6,6 @@ import java.util.List;
 public class Agency {
     private String id;
     private String name;
-    private String description;
     
     @JsonProperty("template-file")
     private String templateFile;
@@ -21,10 +20,9 @@ public class Agency {
     public Agency() {
     }
 
-    public Agency(String id, String name, String description, String templateFile, String instructionFile, List<String> deliveryOptions) {
+    public Agency(String id, String name, String templateFile, String instructionFile, List<String> deliveryOptions) {
         this.id = id;
         this.name = name;
-        this.description = description;
         this.templateFile = templateFile;
         this.instructionFile = instructionFile;
         this.deliveryOptions = deliveryOptions;
@@ -45,14 +43,6 @@ public class Agency {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public String getTemplateFile() {
@@ -77,5 +67,21 @@ public class Agency {
 
     public void setDeliveryOptions(List<String> deliveryOptions) {
         this.deliveryOptions = deliveryOptions;
+    }
+    
+    /**
+     * Checks if this agency has a template file configured
+     * @return true if template file is configured and not empty
+     */
+    public boolean hasTemplate() {
+        return templateFile != null && !templateFile.trim().isEmpty();
+    }
+    
+    /**
+     * Checks if this agency has an instruction file configured
+     * @return true if instruction file is configured and not empty
+     */
+    public boolean hasInstruction() {
+        return instructionFile != null && !instructionFile.trim().isEmpty();
     }
 }

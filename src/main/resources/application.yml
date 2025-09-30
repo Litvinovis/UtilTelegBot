@@ -8,11 +8,9 @@ telegram:
 campaigns:
   - id: campaign1
     name: "Кампания по декларации налогов"
-    description: "Помощь в процессе подачи налоговой декларации"
     agencies:
       - id: agency1
         name: "Федеральная налоговая служба"
-        description: "Федеральная налоговая служба России"
         template-file: "templates/fns/template.txt"
         instruction-file: "templates/fns/instruction.txt"
         delivery-options:
@@ -20,7 +18,6 @@ campaigns:
           - "text"
       - id: agency2
         name: "Местная налоговая инспекция"
-        description: "Местная налоговая инспекция"
         template-file: "templates/local-tax/template.txt"
         instruction-file: "templates/local-tax/instruction.txt"
         delivery-options:
@@ -28,16 +25,22 @@ campaigns:
           - "text"
   - id: campaign2
     name: "Кампания по социальным льготам"
-    description: "Помощь в подаче заявления на социальные льготы"
     agencies:
       - id: agency3
         name: "Департамент социальной защиты"
-        description: "Департамент социальной защиты населения"
         template-file: "templates/social/template.txt"
         instruction-file: "templates/social/instruction.txt"
         delivery-options:
           - "file"
           - "text"
+      - id: agency4
+        name: "Информационный центр"
+        instruction-file: "templates/social/instruction.txt"
+        delivery-options: []
+      - id: agency5
+        name: "Принять участие в публичном обсуждении"
+        instruction-file: "templates/social/instruction.txt"
+        delivery-options: []
 
 # Конфигурация статистики
 statistics:
