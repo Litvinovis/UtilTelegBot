@@ -16,7 +16,7 @@ public class Application {
         logger.info("Запуск приложения UtilTelegBot...");
         logger.info("Версия Java: {}", System.getProperty("java.version"));
         logger.info("Каталог запуска: {}", System.getProperty("user.dir"));
-        logger.info("Каталог classpath: {}", System.getProperty("java.class.path"));
+        logger.debug("Classpath length: {}", System.getProperty("java.class.path").length());
         
         try {
             ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
