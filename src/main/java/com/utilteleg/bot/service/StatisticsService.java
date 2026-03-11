@@ -53,7 +53,10 @@ public class StatisticsService {
         try {
             File file = new File(statisticsFilePath);
             // Создать родительские каталоги, если они не существуют
-            file.getParentFile().mkdirs();
+            File parent = file.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
             objectMapper.writeValue(file, templateDownloads);
         } catch (IOException e) {
             logger.error("Не удалось сохранить статистику в файл: {}", e.getMessage(), e);
