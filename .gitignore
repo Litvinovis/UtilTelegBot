@@ -58,6 +58,7 @@ buildNumber.properties
 
 # Logs
 logs/
+logs/bot.log
 *.log
 
 # Temporary files
