@@ -5,7 +5,6 @@ import com.utilteleg.bot.model.Campaign;
 import com.utilteleg.bot.service.StatisticsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -37,19 +36,20 @@ public class TelegramBotService extends TelegramLongPollingBot {
     private final Map<Long, String> userStates = new ConcurrentHashMap<>();
     private final Map<Long, String> userSelectedCampaign = new ConcurrentHashMap<>();
     private final Map<Long, String> userSelectedAgency = new ConcurrentHashMap<>();
-    
-    @Autowired
-    private com.utilteleg.bot.config.AppConfig appConfig;
-    
-    @Autowired
-    private StatisticsService statisticsService;
-    
+
+    private final com.utilteleg.bot.config.AppConfig appConfig;
+    private final StatisticsService statisticsService;
+
     public TelegramBotService(
             @Value("${telegram.bot.username}") String botUsername,
-            @Value("${telegram.bot.token}") String botToken) {
+            @Value("${telegram.bot.token}") String botToken,
+            com.utilteleg.bot.config.AppConfig appConfig,
+            StatisticsService statisticsService) {
         super(botToken);
         this.botUsername = botUsername;
         this.botToken = botToken;
+        this.appConfig = appConfig;
+        this.statisticsService = statisticsService;
     }
     
     @Override

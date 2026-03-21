@@ -1,3 +1,8 @@
+# Отключаем встроенный веб-сервер — бот работает в режиме long polling
+spring:
+  main:
+    web-application-type: none
+
 # Конфигурация Telegram бота
 telegram:
   bot:
