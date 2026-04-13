@@ -38,21 +38,21 @@ public class AppConfig {
             logger.info("Детали загруженных кампаний:");
             for (int i = 0; i < campaigns.size(); i++) {
                 Campaign campaign = campaigns.get(i);
-                logger.info("  Кампания {}: id='{}', name='{}', количество органов={}", 
-                    i+1, 
-                    campaign.getId(), 
-                    campaign.getName(),
-                    campaign.getAgencies() != null ? campaign.getAgencies().size() : "null");
-                
-                if (campaign.getAgencies() != null) {
-                    for (int j = 0; j < campaign.getAgencies().size(); j++) {
-                        com.utilteleg.bot.model.Agency agency = campaign.getAgencies().get(j);
+                logger.info("  Кампания {}: id='{}', name='{}', количество органов={}",
+                    i + 1,
+                    campaign.id(),
+                    campaign.name(),
+                    campaign.agencies() != null ? campaign.agencies().size() : "null");
+
+                if (campaign.agencies() != null) {
+                    for (int j = 0; j < campaign.agencies().size(); j++) {
+                        com.utilteleg.bot.model.Agency agency = campaign.agencies().get(j);
                         logger.info("    Орган {}: id='{}', name='{}', template-file='{}', варианты доставки={}",
-                            j+1,
-                            agency.getId(),
-                            agency.getName(),
-                            agency.getTemplateFile(),
-                            agency.getDeliveryOptions() != null ? agency.getDeliveryOptions().size() : "null");
+                            j + 1,
+                            agency.id(),
+                            agency.name(),
+                            agency.templateFile(),
+                            agency.deliveryOptions() != null ? agency.deliveryOptions().size() : "null");
                     }
                 }
             }

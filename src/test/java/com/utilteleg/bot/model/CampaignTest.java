@@ -13,16 +13,17 @@ class CampaignTest {
         Agency agency = new Agency("a1", "Agency", "t.txt", "i.txt", List.of("file"));
         Campaign campaign = new Campaign("c1", "Campaign", List.of(agency));
 
-        assertEquals("c1", campaign.getId());
-        assertEquals("Campaign", campaign.getName());
-        assertEquals(1, campaign.getAgencies().size());
+        assertEquals("c1", campaign.id());
+        assertEquals("Campaign", campaign.name());
+        assertEquals(1, campaign.agencies().size());
+    }
 
-        campaign.setId("c2");
-        campaign.setName("Campaign2");
-        campaign.setAgencies(List.of());
+    @Test
+    void emptyAgencies_workAsExpected() {
+        Campaign campaign = new Campaign("c2", "Campaign2", List.of());
 
-        assertEquals("c2", campaign.getId());
-        assertEquals("Campaign2", campaign.getName());
-        assertTrue(campaign.getAgencies().isEmpty());
+        assertEquals("c2", campaign.id());
+        assertEquals("Campaign2", campaign.name());
+        assertTrue(campaign.agencies().isEmpty());
     }
 }
