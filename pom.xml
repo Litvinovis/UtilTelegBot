@@ -17,11 +17,36 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.boot.version>3.4.4</spring.boot.version>
+        <spring.boot.version>3.4.13</spring.boot.version>
         <telegram.version>6.9.7.1</telegram.version>
-        <jackson.version>2.17.2</jackson.version>
-        <poi.version>5.3.0</poi.version>
+        <jackson.version>2.22.3</jackson.version>
+        <poi.version>5.5.1</poi.version>
     </properties>
+
+    <!-- Mockito 5.14 и ByteBuddy 1.14 из Spring Boot 3.4 не работают на JDK 25 (единственный JDK
+         на сервере): тесты с моками и контекстом Spring падали ещё до обновления. Закрепляем версии
+         как в остальных ботах. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-bom</artifactId>
+                <version>5.24.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.17.7</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>1.17.7</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -103,7 +128,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.16.0</version>
                 <configuration>
                     <source>21</source>
                     <target>21</target>
@@ -128,14 +153,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.2</version>
+                <version>3.6.0</version>
             </plugin>
             
             <!-- Exec plugin for running Java classes -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.6.4</version>
             </plugin>
         </plugins>
     </build>
