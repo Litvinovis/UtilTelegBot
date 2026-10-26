@@ -20,7 +20,7 @@
         <spring.boot.version>3.4.13</spring.boot.version>
         <telegram.version>6.9.7.1</telegram.version>
         <jackson.version>2.22.3</jackson.version>
-        <poi.version>5.5.1</poi.version>
+        <poi.version>6.0.0</poi.version>
     </properties>
 
     <!-- Mockito 5.14 и ByteBuddy 1.14 из Spring Boot 3.4 не работают на JDK 25 (единственный JDK
