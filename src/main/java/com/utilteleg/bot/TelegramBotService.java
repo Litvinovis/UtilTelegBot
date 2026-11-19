@@ -5,12 +5,16 @@ import com.utilteleg.bot.model.Campaign;
 import com.utilteleg.bot.service.StatisticsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsumer;
+import org.telegram.telegrambots.longpolling.starter.AfterBotRegistration;
+import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
+import org.telegram.telegrambots.longpolling.util.DefaultLongPollingUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,11 +33,12 @@ import java.util.stream.IntStream;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
-public class TelegramBotService extends TelegramLongPollingBot {
+public class TelegramBotService extends DefaultLongPollingUpdateConsumer implements SpringLongPollingBot {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBotService.class);
     
     private final String botUsername;
     private final String botToken;
+    private final TelegramClient telegramClient;
     
     // В реальном приложении вы бы использовали правильную структуру данных или базу данных
     private final Map<Long, String> userStates = new ConcurrentHashMap<>();
@@ -44,18 +49,18 @@ public class TelegramBotService extends TelegramLongPollingBot {
     private final StatisticsService statisticsService;
 
     public TelegramBotService(
-            @Value("${telegram.bot.username}") String botUsername,
-            @Value("${telegram.bot.token}") String botToken,
+            String botUsername,
+            String botToken,
             com.utilteleg.bot.config.AppConfig appConfig,
-            StatisticsService statisticsService) {
-        super(botToken);
+            StatisticsService statisticsService,
+            TelegramClient telegramClient) {
         this.botUsername = botUsername;
         this.botToken = botToken;
         this.appConfig = appConfig;
         this.statisticsService = statisticsService;
+        this.telegramClient = telegramClient;
     }
     
-    @Override
     public String getBotUsername() {
         return botUsername;
     }
@@ -66,7 +71,17 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
     
     @Override
-    public void onUpdateReceived(Update update) {
+    public LongPollingUpdateConsumer getUpdatesConsumer() {
+        return this;
+    }
+
+    @AfterBotRegistration
+    public void afterRegistration() {
+        logger.info("Бот @{} зарегистрирован для long polling", botUsername);
+    }
+
+    @Override
+    public void consume(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
@@ -90,12 +105,10 @@ public class TelegramBotService extends TelegramLongPollingBot {
         String welcomeText = "Добро пожаловать в бот шаблонов заявлений в госорганы!\n" +
                 "Используйте /campaigns для просмотра доступных тем.";
         
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText(welcomeText);
+        SendMessage message = new SendMessage(chatId.toString(), welcomeText);
         
         try {
-            execute(message);
+            telegramClient.execute(message);
         } catch (TelegramApiException e) {
             logger.error("Не удалось отправить приветственное сообщение: {}", e.getMessage(), e);
         }
@@ -109,14 +122,12 @@ public class TelegramBotService extends TelegramLongPollingBot {
             logger.error("AppConfig бин равен null. Конфигурация не была внедрена правильно.");
             logger.error("Проверьте, что класс AppConfig помечен аннотациями @Configuration и @ConfigurationProperties(prefix = \"campaigns\")");
             logger.error("Также проверьте, что в основном классе Application есть аннотация @EnableConfigurationProperties");
-            SendMessage errorMessage = new SendMessage();
-            errorMessage.setChatId(chatId.toString());
-            errorMessage.setText("Извините, произошла критическая ошибка при загрузке конфигурации. AppConfig недоступен.\n\n" +
+            SendMessage errorMessage = new SendMessage(chatId.toString(), "Извините, произошла критическая ошибка при загрузке конфигурации. AppConfig недоступен.\n\n" +
                                "- AppConfig бин равен null\n" +
                                "- Конфигурация не была внедрена правильно\n" +
                                "- Проверьте аннотации класса AppConfig и Application");
             try {
-                execute(errorMessage);
+                telegramClient.execute(errorMessage);
             } catch (TelegramApiException e) {
                 logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), e);
             }
@@ -144,9 +155,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 logger.error("Ошибка при получении статуса конфигурации: {}", e.getMessage(), e);
             }
             
-            SendMessage errorMessage = new SendMessage();
-            errorMessage.setChatId(chatId.toString());
-            errorMessage.setText("Извините, произошла ошибка при загрузке конфигурации. Список кампаний недоступен.\n\n" +
+            SendMessage errorMessage = new SendMessage(chatId.toString(), "Извините, произошла ошибка при загрузке конфигурации. Список кампаний недоступен.\n\n" +
                                "Диагностика:\n" +
                                "- Список кампаний равен null\n" +
                                "- Статус конфигурации: " + configStatus + "\n" +
@@ -154,7 +163,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
                                "- Проверьте правильность формата YAML\n" +
                                "- Убедитесь, что путь к файлу шаблона существует");
             try {
-                execute(errorMessage);
+                telegramClient.execute(errorMessage);
             } catch (TelegramApiException e) {
                 logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), e);
             }
@@ -163,14 +172,12 @@ public class TelegramBotService extends TelegramLongPollingBot {
         
         if (campaigns.isEmpty()) {
             logger.warn("Список кампаний пуст. Проверьте файл конфигурации application.yml.");
-            SendMessage warningMessage = new SendMessage();
-            warningMessage.setChatId(chatId.toString());
-            warningMessage.setText("Список доступных кампаний пуст. Пожалуйста, обратитесь к администратору бота.\n\n" +
+            SendMessage warningMessage = new SendMessage(chatId.toString(), "Список доступных кампаний пуст. Пожалуйста, обратитесь к администратору бота.\n\n" +
                                  "Диагностика:\n" +
                                  "- Список кампаний пуст (0 элементов)\n" +
                                  "- Проверьте содержимое файла application.yml");
             try {
-                execute(warningMessage);
+                telegramClient.execute(warningMessage);
             } catch (TelegramApiException e) {
                 logger.error("Не удалось отправить предупреждающее сообщение: {}", e.getMessage(), e);
             }
@@ -184,14 +191,12 @@ public class TelegramBotService extends TelegramLongPollingBot {
                         .collect(Collectors.joining("\n")) +
                 "\n\nПожалуйста, выберите кампанию, введя её номер.";
         
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText(messageText);
+        SendMessage message = new SendMessage(chatId.toString(), messageText);
 
         userStates.put(chatId, "SELECTING_CAMPAIGN");
         
         try {
-            execute(message);
+            telegramClient.execute(message);
             logger.info("Список кампаний успешно отправлен пользователю");
         } catch (TelegramApiException e) {
             logger.error("Не удалось отправить список кампаний: {}", e.getMessage(), e);
@@ -223,34 +228,28 @@ public class TelegramBotService extends TelegramLongPollingBot {
                                 .collect(Collectors.joining("\n")) +
                         "\n\nПожалуйста, выберите орган, введя его номер.";
                 
-                SendMessage message = new SendMessage();
-                message.setChatId(chatId.toString());
-                message.setText(messageTextBuilder);
+                SendMessage message = new SendMessage(chatId.toString(), messageTextBuilder);
 
                 userStates.put(chatId, "SELECTING_AGENCY");
 
                 try {
-                    execute(message);
+                    telegramClient.execute(message);
                 } catch (TelegramApiException e) {
                     logger.error("Не удалось отправить список органов: {}", e.getMessage(), e);
                 }
             } else {
-                SendMessage message = new SendMessage();
-                message.setChatId(chatId.toString());
-                message.setText("Неверный выбор кампании. Пожалуйста, попробуйте снова.");
+                SendMessage message = new SendMessage(chatId.toString(), "Неверный выбор кампании. Пожалуйста, попробуйте снова.");
                 try {
-                    execute(message);
+                    telegramClient.execute(message);
                 } catch (TelegramApiException e) {
                     logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), e);
                 }
                 sendCampaignsList(chatId);
             }
         } catch (NumberFormatException e) {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText("Пожалуйста, введите корректный номер.");
+            SendMessage message = new SendMessage(chatId.toString(), "Пожалуйста, введите корректный номер.");
             try {
-                execute(message);
+                telegramClient.execute(message);
             } catch (TelegramApiException ex) {
                 logger.error("Не удалось отправить сообщение об ошибке: {}", ex.getMessage(), ex);
             }
@@ -305,24 +304,20 @@ public class TelegramBotService extends TelegramLongPollingBot {
                                 selectedAgency.name() + ":\n\n" + deliveryList + instructionOption +
                                 "\n\nПожалуйста, выберите вариант доставки, введя его номер.";
                         
-                        SendMessage message = new SendMessage();
-                        message.setChatId(chatId.toString());
-                        message.setText(deliveryText);
+                        SendMessage message = new SendMessage(chatId.toString(), deliveryText);
                         
                         userStates.put(chatId, "SELECTING_DELIVERY");
                         
                         try {
-                            execute(message);
+                            telegramClient.execute(message);
                         } catch (TelegramApiException e) {
                             logger.error("Не удалось отправить варианты доставки: {}", e.getMessage(), e);
                         }
                     }
                 } else {
-                    SendMessage message = new SendMessage();
-                    message.setChatId(chatId.toString());
-                    message.setText("Неверный выбор органа. Пожалуйста, попробуйте снова.");
+                    SendMessage message = new SendMessage(chatId.toString(), "Неверный выбор органа. Пожалуйста, попробуйте снова.");
                     try {
-                        execute(message);
+                        telegramClient.execute(message);
                     } catch (TelegramApiException e) {
                         logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), e);
                     }
@@ -333,11 +328,9 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 }
             }
         } catch (NumberFormatException e) {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText("Пожалуйста, введите корректный номер.");
+            SendMessage message = new SendMessage(chatId.toString(), "Пожалуйста, введите корректный номер.");
             try {
-                execute(message);
+                telegramClient.execute(message);
             } catch (TelegramApiException ex) {
                 logger.error("Не удалось отправить сообщение об ошибке: {}", ex.getMessage(), ex);
             }
@@ -406,11 +399,9 @@ public class TelegramBotService extends TelegramLongPollingBot {
                         userSelectedCampaign.remove(chatId);
                         userSelectedAgency.remove(chatId);
                     } else {
-                        SendMessage message = new SendMessage();
-                        message.setChatId(chatId.toString());
-                        message.setText("Неверный вариант доставки. Пожалуйста, попробуйте снова.");
+                        SendMessage message = new SendMessage(chatId.toString(), "Неверный вариант доставки. Пожалуйста, попробуйте снова.");
                         try {
-                            execute(message);
+                            telegramClient.execute(message);
                         } catch (TelegramApiException e) {
                             logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), e);
                         }
@@ -418,11 +409,9 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 }
             }
         } catch (NumberFormatException e) {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText("Пожалуйста, введите корректный номер.");
+            SendMessage message = new SendMessage(chatId.toString(), "Пожалуйста, введите корректный номер.");
             try {
-                execute(message);
+                telegramClient.execute(message);
             } catch (TelegramApiException ex) {
                 logger.error("Не удалось отправить сообщение об ошибке: {}", ex.getMessage(), ex);
             }
@@ -442,12 +431,13 @@ public class TelegramBotService extends TelegramLongPollingBot {
             File templateFile = new File(agency.templateFile());
             if (templateFile.exists()) {
                 try {
-                    SendDocument sendDocument = new SendDocument();
-                    sendDocument.setChatId(chatId.toString());
-                    sendDocument.setDocument(new org.telegram.telegrambots.meta.api.objects.InputFile(templateFile));
-                    sendDocument.setCaption("Вот ваш шаблон заявления");
+                    SendDocument sendDocument = SendDocument.builder()
+                            .chatId(chatId.toString())
+                            .document(new InputFile(templateFile))
+                            .caption("Вот ваш шаблон заявления")
+                            .build();
                     
-                    execute(sendDocument);
+                    telegramClient.execute(sendDocument);
                     // После отправки шаблона отправляем инструкцию
                     sendInstructionFile(chatId.toString(), agency);
                 } catch (TelegramApiException e) {
@@ -488,12 +478,10 @@ public class TelegramBotService extends TelegramLongPollingBot {
                     templateContent = java.nio.file.Files.readString(templateFile.toPath());
                 }
                 
-                SendMessage message = new SendMessage();
-                message.setChatId(chatId.toString());
-                message.setText("Вот ваш шаблон заявления:\n\n" + templateContent);
+                SendMessage message = new SendMessage(chatId.toString(), "Вот ваш шаблон заявления:\n\n" + templateContent);
                 
                 try {
-                    execute(message);
+                    telegramClient.execute(message);
                     // После отправки шаблона отправляем инструкцию
                     sendInstructionFile(chatId.toString(), agency);
                 } catch (TelegramApiException e) {
@@ -502,12 +490,10 @@ public class TelegramBotService extends TelegramLongPollingBot {
             } catch (Exception e) {
                 logger.error("Не удалось прочитать файл шаблона: {}", e.getMessage(), e);
                 
-                SendMessage message = new SendMessage();
-                message.setChatId(chatId.toString());
-                message.setText("Извините, не удалось получить шаблон в данный момент.");
+                SendMessage message = new SendMessage(chatId.toString(), "Извините, не удалось получить шаблон в данный момент.");
                 
                 try {
-                    execute(message);
+                    telegramClient.execute(message);
                 } catch (TelegramApiException ex) {
                     logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), ex);
                 }
@@ -515,12 +501,10 @@ public class TelegramBotService extends TelegramLongPollingBot {
         } else {
             logger.error("Файл шаблона не найден: {}", agency.templateFile());
             
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText("Извините, файл шаблона недоступен.");
+            SendMessage message = new SendMessage(chatId.toString(), "Извините, файл шаблона недоступен.");
             
             try {
-                execute(message);
+                telegramClient.execute(message);
             } catch (TelegramApiException e) {
                 logger.error("Не удалось отправить сообщение об ошибке: {}", e.getMessage(), e);
             }
@@ -576,10 +560,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
             }
             
             // Send as simple text message
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId);
-            message.setText(instructionText);
-            execute(message);
+            SendMessage message = new SendMessage(chatId, instructionText);
+            telegramClient.execute(message);
             logger.info("Отправлена текстовая инструкция по отправке для агентства: {}", agency.name());
         } catch (Exception e) {
             logger.error("Ошибка при отправке инструкции по отправке для агентства {}: {}", agency.name(), e.getMessage());
@@ -593,10 +575,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
                         "5. Следите за статусом рассмотрения заявления\n\n" +
                         "Подробности уточняйте на официальном сайте " + agency.name() + ".";
                 
-                SendMessage message = new SendMessage();
-                message.setChatId(chatId);
-                message.setText(fallbackText);
-                execute(message);
+                SendMessage message = new SendMessage(chatId, fallbackText);
+                telegramClient.execute(message);
                 logger.info("Отправлена резервная инструкция по отправке для агентства: {}", agency.name());
             } catch (TelegramApiException ex) {
                 logger.error("Ошибка при отправке резервной инструкции для агентства {}: {}", agency.name(), ex.getMessage());
@@ -632,12 +612,10 @@ public class TelegramBotService extends TelegramLongPollingBot {
      * Отправляет сообщение о том, что нет контента для отправки
      */
     private void sendNoContentMessage(Long chatId, Agency agency) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText("Извините, для данного органа нет доступных шаблонов или инструкций.");
+        SendMessage message = new SendMessage(chatId.toString(), "Извините, для данного органа нет доступных шаблонов или инструкций.");
         
         try {
-            execute(message);
+            telegramClient.execute(message);
         } catch (TelegramApiException e) {
             logger.error("Не удалось отправить сообщение об отсутствии контента: {}", e.getMessage(), e);
         }
