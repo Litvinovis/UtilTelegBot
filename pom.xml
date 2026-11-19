@@ -23,9 +23,9 @@
         <poi.version>6.0.0</poi.version>
     </properties>
 
-    <!-- Mockito 5.14 и ByteBuddy 1.14 из Spring Boot 3.4 не работают на JDK 25 (единственный JDK
-         на сервере): тесты с моками и контекстом Spring падали ещё до обновления. Закрепляем версии
-         как в остальных ботах. -->
+    <!-- Сохраняем согласованные версии Mockito/Byte Buddy для JDK 25.
+         BOM Spring Boot выравнивает транзитивные Spring и JUnit, в том числе
+         зависимости старого Telegram-стартера. Jackson 2 используется кодом бота. -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -44,6 +44,20 @@
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy-agent</artifactId>
                 <version>1.18.15</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -6,6 +6,8 @@ import com.utilteleg.bot.model.Campaign;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
 
 import java.util.List;
 
@@ -13,6 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class ConfigLoadingTest {
+
+    // Контекст конфигурации проверяем без регистрации бота в Telegram.
+    @MockitoBean
+    private TelegramBotsApi telegramBotsApi;
 
     @Autowired
     private AppConfig appConfig;
