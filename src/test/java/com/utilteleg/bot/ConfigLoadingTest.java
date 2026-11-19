@@ -6,19 +6,35 @@ import com.utilteleg.bot.model.Campaign;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
+import org.telegram.telegrambots.longpolling.util.DefaultGetUpdatesGenerator;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.verify;
 
-@SpringBootTest
+@SpringBootTest(properties = {"telegram.bot.token=123:abc", "telegram.bot.username=test_bot"})
 class ConfigLoadingTest {
 
     // Контекст конфигурации проверяем без регистрации бота в Telegram.
-    @MockitoBean
-    private TelegramBotsApi telegramBotsApi;
+    @MockitoBean(enforceOverride = true, reset = MockReset.NONE)
+    private TelegramBotsLongPollingApplication telegramBotsApplication;
+
+    @Autowired
+    private TelegramBotService telegramBotService;
+
+    @Test
+    void starterRegistersBotAndRoutesUpdatesToService() throws Exception {
+        verify(telegramBotsApplication).registerBot(eq("123:abc"), any(),
+                isA(DefaultGetUpdatesGenerator.class), same(telegramBotService.getUpdatesConsumer()));
+    }
 
     @Autowired
     private AppConfig appConfig;

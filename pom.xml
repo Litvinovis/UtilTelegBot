@@ -18,7 +18,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>4.1.2</spring.boot.version>
-        <telegram.version>6.9.7.1</telegram.version>
+        <telegram.version>10.3.0</telegram.version>
         <jackson.version>2.22.3</jackson.version>
         <poi.version>6.0.0</poi.version>
     </properties>
@@ -90,10 +90,16 @@
         <!-- Telegram Bot API -->
         <dependency>
             <groupId>org.telegram</groupId>
-            <artifactId>telegrambots-spring-boot-starter</artifactId>
+            <artifactId>telegrambots-springboot-longpolling-starter</artifactId>
             <version>${telegram.version}</version>
         </dependency>
         
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-client</artifactId>
+            <version>${telegram.version}</version>
+        </dependency>
+
         <!-- Jackson for JSON processing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

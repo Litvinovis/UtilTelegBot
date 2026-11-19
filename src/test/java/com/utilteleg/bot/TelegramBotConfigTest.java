@@ -5,6 +5,7 @@ import com.utilteleg.bot.service.StatisticsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,7 +20,7 @@ class TelegramBotConfigTest {
         AppConfig appConfig = Mockito.mock(AppConfig.class);
         StatisticsService statisticsService = Mockito.mock(StatisticsService.class);
 
-        TelegramBotService service = cfg.telegramBotService(appConfig, statisticsService);
+        TelegramBotService service = cfg.telegramBotService(appConfig, statisticsService, Mockito.mock(TelegramClient.class));
         assertNotNull(service);
         assertEquals("test_bot", service.getBotUsername());
         assertEquals("123:abc", service.getBotToken());
