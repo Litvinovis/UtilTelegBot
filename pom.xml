@@ -19,7 +19,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>4.1.2</spring.boot.version>
         <telegram.version>10.3.0</telegram.version>
-        <jackson.version>2.22.3</jackson.version>
+        <jackson.version>2.23.0</jackson.version>
         <poi.version>6.0.0</poi.version>
     </properties>
 
